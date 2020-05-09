@@ -28,3 +28,16 @@ docker run --rm -p 3000:3000 http-step2
 L'application permet de générer aléatoirement 20 animaux à l'adresse [http://localhost:3000/](http://localhost:3000/).
 
 L'application permet également de générer aléatoirement un nombre spécifique d'animaux en mettant le nombre voulu dans l'URL: [http://localhost:3000/200](http://localhost:3000/200) pour générer 200 animaux.
+
+# Step 3: Reverse proxy avec NGINX (configuration statique)
+
+Pour cette étape, nous avons utilisé NGINX pour opéré en tant que reverse proxy. Pour manager les conteneurs, nous avons utilisé Docker Compose.
+
+L'infra peut être testée avec la commande suivante:
+```
+docker-compose -f Step_3/docker-compose.yml up
+```
+
+Notre infrastructure étant composée de 3 services: le reverse proxy,  un site HTML statique et un site dynamique avec NodeJS; nous pouvons accéder au 2ème à l'URL [http://localhost:8000](http://localhost:8000) et au 3ème à l'URL [http://localhost:8000/animals](http://localhost:8000/animals) via le reverse proxy. 
+
+On peut toujours demander plus d'animaux par exemple: [http://localhost:8000/animals/100](http://localhost:8000/animals/100) pour demander 100 animaux.
