@@ -37,16 +37,78 @@ L'application permet également de générer aléatoirement un nombre spécifiqu
 
 ## Step 3: Reverse proxy avec NGINX (configuration statique)
 
-Pour cette étape, nous avons utilisé NGINX pour opéré en tant que reverse proxy. Pour manager les conteneurs, nous avons utilisé Docker Compose.
+Pour cette étape, nous avons utilisé NGINX pour opéré en tant que reverse proxy.
 
-L'infra peut être testée avec la commande suivante:
+### Configuration
+
+Nous commençons pas construire et démarrer les containers des serveur HTTP statique et dynamique :
+
+```bash
+docker build -t http-step1 ./Step_1
+docker run -d --rm --name http-step1 http-step1
+
+docker build -t http-step2 ./Step_2
+docker run -d --rm --name http-step2 http-step2
 ```
-docker-compose -f Step_3/docker-compose.yml up
+
+On utilise la commande *docker inspect* pour récupéré l'IP interne des deux containers :
+
+```bash
+docker inspect http-step1 | grep IPAddress			# 172.17.0.2
+docker inspect http-step2 | grep IPAddress			# 172.17.0.3
 ```
 
-Notre infrastructure étant composée de 3 services: le reverse proxy,  un site HTML statique et un site dynamique avec NodeJS; nous pouvons accéder au 2ème à l'URL [http://demo.res.ch](http://demo.res.ch) et au 3ème à l'URL [http://demo.res.ch/api/animals](http://demo.res.ch/api/animals) via le reverse proxy. 
+On défini ensuite l'IP des backends dans la configuration NGINX :
 
-On peut toujours demander plus d'animaux par exemple: [http://demo.res.ch/api/animals/100](http://demo.res.ch/api/animals/100) pour demander 100 animaux.
+```nginx
+server {
+    listen 80;
+}
+
+server {
+    listen 80;
+    server_name demo.res.ch;
+    
+    location / {
+        proxy_pass http://172.17.0.2/;
+    }
+
+    location /api/animals {
+        proxy_pass http://172.17.0.3:3000/;
+    }
+
+    location /api/animals/ {
+        proxy_pass http://172.17.0.3:3000/;
+    }
+}
+```
+
+Puis on démarre un container NGINX avec la configuration créé, en forwardant le port 80 :
+
+```bash
+docker run -d --name http-step3 -p 80:80 \
+-v "${PWD}/Step_3/nginx-reverse.conf:/etc/nginx/conf.d/default.conf" nginx:latest
+```
+
+Il ne nous reste plus qu'à ajouter la ligne suivante dans notre fichier `/etc/hosts` pour pouvoir accéder au reverse proxy avec l'hôte **demo.res.ch**.
+
+```
+127.0.0.1		demo.res.ch
+```
+
+Et voilà ! Nous pouvons maintenant accéder à notre serveur statique à travers le reverse proxy avec http://demo.res.ch et le serveur dynamique avec http://demo.res.ch/api/animals. On peut toujours demander plus d'animaux par exemple: [http://demo.res.ch/api/animals/100](http://demo.res.ch/api/animals/100) pour demander 100 animaux.
+
+### Remarques
+
+#### Faiblesse de la configuration
+
+Cette configuration statique est évidement très fragile pour la simple et bonne raison que nous avons hardcode l'IP des backends dans la configuration NGINX. Sachant que les IPs des containers sont attribués par docker et ne sont donc pas fixes, l'infrastructure peut se casser à chaque redémarrage de container. Il ne faut donc pas utiliser de tel configuration en production.
+
+#### Point d'entrée unique
+
+Dans un environnement de production, l’intérêt d'un reverse proxy est de n'avoir qu'un seul point d'entrée dans l'infrastructure. Cela permet de mieux contrôler le trafic et donc de protéger les serveurs backend. Il est toutefois nécessaire de configurer un pare-feu pour que les serveurs ne soit pas accessible directement.
+
+Sur notre environnement, docker est installé directement sur nos machines (linux) est donc tous les réseaux docker sont accessible depuis l'hôte. Cela a comme conséquence qu'il est toujours possible d'accéder au serveurs web backend avec leur adresse IP (http://172.17.0.2 et http://172.17.0.3:3000).
 
 
 
@@ -86,6 +148,8 @@ function updateTitle() {
 ## Step 5: Reverse proxy dynamique
 
 Pour cette étape, nous avons choisi d'utiliser **Traefik**, un puissant reverse proxy écrit en Go qui est particulièrement bien adapter aux infrastructure utilisant docker. En effet, une fois bien configuré, traefik gérera automatiquement la découverte des containers de notre infrastructure.
+
+### Configuration
 
 Pour pleinement profiter de la puissance de traefik, nous allons utiliser docker-compose pour créer nos container. Voici à quoi correspond notre configuration de base :
 
@@ -206,7 +270,7 @@ labels:
 
 La première ligne permet d'indiquer à notre routeur qu'on veut utiliser un middleware et la deuxième ligne enlève le préfixe "/api/animals" de la requête. 
 
-#### Validation
+### Validation
 
 Et voilà ! C'est (déjà) terminé. La configuration complète est disponible dans le fichier `docker-compose.yml`. Nous pouvons maintenant tester notre infrastructure en exécutant la commande :
 
