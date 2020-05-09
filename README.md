@@ -73,10 +73,6 @@ server {
         proxy_pass http://172.17.0.2/;
     }
 
-    location /api/animals {
-        proxy_pass http://172.17.0.3:3000/;
-    }
-
     location /api/animals/ {
         proxy_pass http://172.17.0.3:3000/;
     }
@@ -86,7 +82,7 @@ server {
 Puis on démarre un container NGINX avec la configuration créé, en forwardant le port 80 :
 
 ```bash
-docker run -d --name http-step3 -p 80:80 \
+docker run -d --rm --name http-step3 -p 80:80 \
 -v "${PWD}/Step_3/nginx-reverse.conf:/etc/nginx/conf.d/default.conf" nginx:latest
 ```
 
