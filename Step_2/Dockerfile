@@ -6,8 +6,8 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN npm install --only=production
+RUN yarn install
 
-RUN npm run build
+RUN yarn run build
 
-CMD ["node", "dist/main"]
+CMD ["yarn", "run", "start:prod"]
