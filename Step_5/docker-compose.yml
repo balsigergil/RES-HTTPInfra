@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   dynamic-web:
-    build: ./Step_2/
+    build: ../Step_2/
     container_name: dynamic-web
     labels:
     # Enable reverse proxy exposing for this container
@@ -16,7 +16,7 @@ services:
     # Specify backend port
     - "traefik.http.services.dynamic-web.loadbalancer.server.port=3000"
   static-web:
-    build: ./Step_1/
+    build: ../Step_1/
     container_name: static-web
     labels:
     # Enable reverse proxy exposing for this container
@@ -46,13 +46,3 @@ services:
     volumes:
     # Traefik need to have read-only access to the docker socket when using docker as a provider
     - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    
-  test-app:
-    image: "containous/whoami"
-    container_name: "test-app"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.test-app.rule=Host(`test.localhost`) && PathPrefix(`/test`)"
-      - "traefik.http.routers.test-app.entrypoints=web"
-      - "traefik.http.routers.test-app.middlewares=test-app-middleware"
-      - "traefik.http.middlewares.test-app-middleware.stripprefix.prefixes=/test"

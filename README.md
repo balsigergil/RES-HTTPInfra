@@ -161,11 +161,15 @@ La première ligne permet d'indiquer à notre routeur qu'on veut utiliser un mid
 Et voilà ! C'est (déjà) terminé. La configuration complète est disponible dans le fichier `docker-compose.yml`. Nous pouvons maintenant tester notre infrastructure en exécutant la commande :
 
 ```bash
-docker-compose up
+docker-compose -f Step_5/docker-compose.yml up
 ```
 
-Résultat :
+
+
+http://demo.res.ch :
 
 ![step5a](image/step5a.png)
+
+http://demo.res.ch/api/100 :
 
 ![step5b](image/step5b.png)
