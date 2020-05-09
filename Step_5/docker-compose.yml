@@ -7,12 +7,12 @@ services:
     # Enable reverse proxy exposing for this container
     - "traefik.enable=true"
     # Set routing rules
-    - "traefik.http.routers.dynamic-web.rule=Host(`demo.res.ch`) && PathPrefix(`/api`)"
+    - "traefik.http.routers.dynamic-web.rule=Host(`demo.res.ch`) && PathPrefix(`/api/animals`)"
     # Set reverse proxy entrypoint
     - "traefik.http.routers.dynamic-web.entrypoints=web"
     # Cut path prefix with middleware
     - "traefik.http.routers.dynamic-web.middlewares=dynamic-web-middleware"
-    - "traefik.http.middlewares.dynamic-web-middleware.stripprefix.prefixes=/api"
+    - "traefik.http.middlewares.dynamic-web-middleware.stripprefix.prefixes=/api/animals"
     # Specify backend port
     - "traefik.http.services.dynamic-web.loadbalancer.server.port=3000"
   static-web:

@@ -44,9 +44,9 @@ L'infra peut être testée avec la commande suivante:
 docker-compose -f Step_3/docker-compose.yml up
 ```
 
-Notre infrastructure étant composée de 3 services: le reverse proxy,  un site HTML statique et un site dynamique avec NodeJS; nous pouvons accéder au 2ème à l'URL [http://localhost:8000](http://localhost:8000) et au 3ème à l'URL [http://localhost:8000/animals](http://localhost:8000/animals) via le reverse proxy. 
+Notre infrastructure étant composée de 3 services: le reverse proxy,  un site HTML statique et un site dynamique avec NodeJS; nous pouvons accéder au 2ème à l'URL [http://demo.res.ch](http://demo.res.ch) et au 3ème à l'URL [http://demo.res.ch/api/animals](http://demo.res.ch/api/animals) via le reverse proxy. 
 
-On peut toujours demander plus d'animaux par exemple: [http://localhost:8000/animals/100](http://localhost:8000/animals/100) pour demander 100 animaux.
+On peut toujours demander plus d'animaux par exemple: [http://demo.res.ch/api/animals/100](http://demo.res.ch/api/animals/100) pour demander 100 animaux.
 
 
 
@@ -56,7 +56,7 @@ Avec le temps, il devenu plus aisé de faire des requêtes AJAX en vanilla JavaS
 
 C'est pourquoi nous n'avons pas utilisé jQuery, qui est certe toujours utilisé mais l'est de moins en moins et tant à être remplacé par des frameworks tels que React ou Vue basés sur du virtual DOM plutôt que manipuler la DOM HTML directement.
 
-Il est possible de tester l'application sur l'URL: [http://localhost:8000](http://localhost:8000) après avoir lancé l'infra comme indiqué à l'étape 3
+Il est possible de tester l'application sur l'URL: [http://demo.res.ch](http://demo.res.ch) après avoir lancé l'infra comme indiqué à l'étape 3
 
 Le script est relativement simple. On récupère 1 animal et on remplace le texte du titre. On fait cela toutes les 2.5 secondes.
 
@@ -68,7 +68,7 @@ updateTitle();
 setInterval(updateTitle, 2500);
 
 function updateTitle() {
-    let result = fetch("/animals/1");
+    let result = fetch("/api/animals/1");
     result
         .then((response) => response.json())
         .then((data) => {
@@ -187,24 +187,24 @@ labels:
 
 #### Configuration du RP pour le serveur HTTP dynamique
 
-La configuration pour ce container est similaire que pour le serveur HTTP statique à l'exception que nous ne voulons router que les requêtes commençant par **/api**. 
+La configuration pour ce container est similaire que pour le serveur HTTP statique à l'exception que nous ne voulons router que les requêtes commençant par **/api/animals**. 
 
 Pour cela, nous allons ajouter une règle  *PathPrefix* :
 
 ```yaml
 labels:
-- "traefik.http.routers.dynamic-web.rule=Host(`demo.res.ch`) && PathPrefix(`/api`)"
+- "traefik.http.routers.dynamic-web.rule=Host(`demo.res.ch`) && PathPrefix(`/api/animals`)"
 ```
 
-Dans l'état, le reverse proxy va envoyer la requête `demo.res.ch/api` au backend. Ce n'est pas exactement ce que nous voulons. Il nous faut donc modifier la requête pour enlever  "*/api*" avant de l'envoyer au backend. Pour cela, nous allons utiliser un **middleware** :
+Dans l'état, le reverse proxy va envoyer la requête `demo.res.ch/api/animals` au backend. Ce n'est pas exactement ce que nous voulons. Il nous faut donc modifier la requête pour enlever  "*/api/animals*" avant de l'envoyer au backend. Pour cela, nous allons utiliser un **middleware** :
 
 ```yaml
 labels:
 - "traefik.http.routers.dynamic-web.middlewares=dynamic-web-middleware"
-- "traefik.http.middlewares.dynamic-web-middleware.stripprefix.prefixes=/api"
+- "traefik.http.middlewares.dynamic-web-middleware.stripprefix.prefixes=/api/animals"
 ```
 
-La première ligne permet d'indiquer à notre routeur qu'on veut utiliser un middleware et la deuxième ligne enlève le préfixe "/api" de la requête. 
+La première ligne permet d'indiquer à notre routeur qu'on veut utiliser un middleware et la deuxième ligne enlève le préfixe "/api/animals" de la requête. 
 
 #### Validation
 
@@ -218,8 +218,4 @@ docker-compose -f Step_5/docker-compose.yml up
 
 http://demo.res.ch :
 
-![step5a](image/step5a.png)
-
-http://demo.res.ch/api/100 :
-
-![step5b](image/step5b.png)
+http://demo.res.ch/api/animals/100 :
