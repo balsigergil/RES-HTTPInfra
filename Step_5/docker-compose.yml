@@ -1,0 +1,48 @@
+version: "3.8"
+services:
+  dynamic-web:
+    build: ../Step_2/
+    container_name: dynamic-web
+    labels:
+    # Enable reverse proxy exposing for this container
+    - "traefik.enable=true"
+    # Set routing rules
+    - "traefik.http.routers.dynamic-web.rule=Host(`demo.res.ch`) && PathPrefix(`/api`)"
+    # Set reverse proxy entrypoint
+    - "traefik.http.routers.dynamic-web.entrypoints=web"
+    # Cut path prefix with middleware
+    - "traefik.http.routers.dynamic-web.middlewares=dynamic-web-middleware"
+    - "traefik.http.middlewares.dynamic-web-middleware.stripprefix.prefixes=/api"
+    # Specify backend port
+    - "traefik.http.services.dynamic-web.loadbalancer.server.port=3000"
+  static-web:
+    build: ../Step_1/
+    container_name: static-web
+    labels:
+    # Enable reverse proxy exposing for this container
+    - "traefik.enable=true"
+    # Set routing rules
+    - "traefik.http.routers.static-web.rule=Host(`demo.res.ch`)"
+    # Set reverse proxy entrypoint
+    - "traefik.http.routers.static-web.entrypoints=web"
+    # Specify backend port
+    - "traefik.http.services.static-web.loadbalancer.server.port=80"
+  reverse-proxy:
+    image: traefik
+    container_name: reverse-proxy
+    command:
+    # Enable traefik web interface
+    - "--api.insecure=true"
+    # Set docker as a provider
+    - "--providers.docker=true"
+    # Disable container auto-exposing
+    - "--providers.docker.exposedbydefault=false"
+    # Specify frontend port
+    - "--entrypoints.web.address=:80"
+    ports:
+    # 80 for reverse proxy, 8080 for traefik web interface
+    - "80:80"
+    - "8080:8080"
+    volumes:
+    # Traefik need to have read-only access to the docker socket when using docker as a provider
+    - "/var/run/docker.sock:/var/run/docker.sock:ro"
