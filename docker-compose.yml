@@ -45,7 +45,7 @@ services:
     - "8080:8080"
     volumes:
     # Traefik need to have read-only access to the docker socket when using docker as a provider
-    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - "/var/run/docker.sock:/var/run/docker.sock:ro"
     
   test-app:
     image: "containous/whoami"
