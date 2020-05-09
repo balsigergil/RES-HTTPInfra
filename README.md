@@ -50,6 +50,39 @@ On peut toujours demander plus d'animaux par exemple: [http://localhost:8000/ani
 
 
 
+## Step 4: Requêtes AJAX en JavaScript
+
+Avec le temps, il devenu plus aisé de faire des requêtes AJAX en vanilla JavaScript avec l'API Fetch et les promesses.
+
+C'est pourquoi nous n'avons pas utilisé jQuery, qui est certe toujours utilisé mais l'est de moins en moins et tant à être remplacé par des frameworks tels que React ou Vue basés sur du virtual DOM plutôt que manipuler la DOM HTML directement.
+
+Il est possible de tester l'application sur l'URL: [http://localhost:8000](http://localhost:8000) après avoir lancé l'infra comme indiqué à l'étape 3
+
+Le script est relativement simple. On récupère 1 animal et on remplace le texte du titre. On fait cela toutes les 2.5 secondes.
+
+Le code de `app.js` est le suivant:
+```javascript
+let title = document.getElementById("site-title");
+
+updateTitle();
+setInterval(updateTitle, 2500);
+
+function updateTitle() {
+    let result = fetch("/animals/1");
+    result
+        .then((response) => response.json())
+        .then((data) => {
+            let animal = data[0];
+            title.innerText = animal.name + " is a " + animal.type;
+        })
+        .catch(function () {
+            title.innerText = "No animal";
+        });
+}
+```
+
+
+
 ## Step 5: Reverse proxy dynamique
 
 Pour cette étape, nous avons choisi d'utiliser **Traefik**, un puissant reverse proxy écrit en Go qui est particulièrement bien adapter aux infrastructure utilisant docker. En effet, une fois bien configuré, traefik gérera automatiquement la découverte des containers de notre infrastructure.
