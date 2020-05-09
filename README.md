@@ -218,4 +218,8 @@ docker-compose -f Step_5/docker-compose.yml up
 
 http://demo.res.ch :
 
+![step5a](image/step5a.png)
+
 http://demo.res.ch/api/animals/100 :
+
+![step5b](image/step5b.png)
