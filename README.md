@@ -283,3 +283,25 @@ http://demo.res.ch :
 http://demo.res.ch/api/animals/100 :
 
 ![step5b](image/step5b.png)
+
+
+
+## Step 6 : Load balancing
+
+Lancer les containers :
+
+```bash
+docker-compose --compatibility up -d
+```
+
+
+
+Test la configuration :
+
+```bash
+curl http://demo.res.ch 2>/dev/null | grep host
+```
+
+Résultat :
+
+![step6_static](image/step6_static.png)
