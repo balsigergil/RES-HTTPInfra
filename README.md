@@ -291,7 +291,7 @@ http://demo.res.ch/api/animals/100 :
 Lancer les containers :
 
 ```bash
-docker-compose --compatibility up -d
+docker-compose --compatibility up -d --build
 ```
 
 

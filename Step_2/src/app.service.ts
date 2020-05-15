@@ -13,7 +13,8 @@ export class AppService {
           type: chance.animal(),
           name: chance.first(),
           age: chance.age(),
-          country: chance.country({ full: true })
+          country: chance.country({ full: true }),
+	  hostname: require("os").hostname()
         }
       ];
     }

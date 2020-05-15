@@ -9,7 +9,7 @@ function updateTitle() {
         .then((response) => response.json())
         .then((data) => {
             let animal = data[0];
-            title.innerText = animal.name + " is a " + animal.type;
+            title.innerText = animal.name + " is a " + animal.type + ". Dynamic host: " + animal.hostname;
         })
         .catch(function () {
             title.innerText = "No animal";
