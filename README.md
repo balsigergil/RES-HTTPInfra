@@ -338,7 +338,9 @@ Dans le fichier **Step_2/src/app.service.ts**, on ajoute un champs **hostname** 
 Puis dans le fichier **Step_1/src/app.js**, on affiche le **hostname** :
 
 ```javascript
-title.innerText = animal.name + " is a " + animal.type + ". Dynamic host: " + animal.hostname;
+let dynamic_host = document.getElementById("dynamic-host");
+...
+dynamic_host.innerText = "Dynamic host: " + animal.hostname;
 ```
 
 

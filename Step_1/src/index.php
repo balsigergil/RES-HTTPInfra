@@ -42,12 +42,14 @@
         <header class="blog-header py-3">
             <div class="row flex-nowrap justify-content-between align-items-center">
                 <div class="col-4 pt-1">
-                    <a class="text-muted" href="#">Subscribe</a>
+                    <p class="text-muted">
+                    Static host: <?=file_get_contents("/etc/hostname"); ?>
+                    <br>
+                    <span id="dynamic-host"></span>
+                    </p>
                 </div>
                 <div class="col-4 text-center">
 		    <a class="blog-header-logo text-dark" href="#">RES HTTP Infra</a>
-                    <br>
-                    <span>Static host: <?=file_get_contents("/etc/hostname"); ?></span>
                 </div>
                 <div class="col-4 d-flex justify-content-end align-items-center">
                     <a class="text-muted" href="#" aria-label="Search">
@@ -82,7 +84,7 @@
         </div>
 
         <div class="jumbotron p-4 p-md-5 text-white rounded bg-dark">
-            <div class="col-md-6 px-0">
+            <div class="col-md-12 px-0">
                 <h1 class="display-4 font-italic" id="site-title">Title of a longer featured blog post</h1>
                 <p class="lead my-3">Multiple lines of text that form the lede, informing new readers quickly and
                     efficiently about what’s most interesting in this post’s contents.</p>
