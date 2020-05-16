@@ -63,6 +63,10 @@ On défini ensuite l'IP des backends dans la configuration NGINX :
 ```nginx
 server {
     listen 80;
+
+    location / {
+        deny all;
+    }
 }
 
 server {
@@ -106,6 +110,56 @@ Dans un environnement de production, l’intérêt d'un reverse proxy est de n'a
 
 Sur notre environnement, docker est installé directement sur nos machines (linux) est donc tous les réseaux docker sont accessible depuis l'hôte. Cela a comme conséquence qu'il est toujours possible d'accéder au serveurs web backend avec leur adresse IP (http://172.17.0.2 et http://172.17.0.3:3000).
 
+### Alternative avec Docker Compose
+
+Docker Compose permet de lancer plusieurs conteneurs avec une seule ligne de commande. Il permet également de gérer plus facilement l'interaction entre les différents conteneurs grâce à un réseau bridge Docker. Cela permet entre autre d'utiliser les noms des conteneurs à la place de leur adresse IP car à l'intérieur d'un réseau bridge Docker, celui-ci fourni une résolution DNS des noms des conteneurs ([Documentation Docker sur les réseaux](https://docs.docker.com/network/bridge/#differences-between-user-defined-bridges-and-the-default-bridge)).
+
+On défini alors un `docker-compose.yml` dans `Step_3` comme suit :
+```yaml
+version: "3.2"
+services:
+    static-web:
+        build: ../Step_1
+    dynamic-web:
+        build: ../Step_2
+    reverse-proxy:
+        image: nginx:latest
+        ports:
+            - "80:80"
+        volumes:
+            - "./nginx-reverse-dc.conf:/etc/nginx/conf.d/default.conf"
+```
+
+On peut ensuite utiliser les noms des conteneurs dans notre configuration NGINX à la place des adresses IP :
+```nginx
+server {
+    listen 80;
+
+    location / {
+        deny all;
+    }
+}
+
+server {
+    listen 80;
+    server_name demo.res.ch;
+
+    location / {
+        proxy_pass http://static-web/;
+    }
+
+    location /api/animals/ {
+        proxy_pass http://dynamic-web:3000/;
+    }
+}
+```
+
+On démarre notre infrastructure avec :
+```
+docker-compose -f Step_3/docker-compose.yml up
+```
+
+La configuration reste tout de même statique et il faudra toujours modifier la configuration de NGINX lorsque l'on souhaite rajouter un nouveau conteneur à notre infrastructure. Mais elle a l'avantage de gérer dynamiquement la résolution des conteneurs dans la configuration NGINX et plus besoin d'utiliser d'adresse IP susceptible de changer.
 
 
 ## Step 4: Requêtes AJAX en JavaScript

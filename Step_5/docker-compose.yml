@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.2"
 services:
   dynamic-web:
     build: ../Step_2/
