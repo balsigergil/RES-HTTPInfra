@@ -388,6 +388,10 @@ On démarre notre infrastructure avec la commande suivante pour force la reconst
 docker-compose --compatibility up -d --build
 ```
 
+Et on peut maintenant voir les deux noms d'hôte en haut à gauche de la page web. Le hostname dynamique change toutes les 3 secondes et le hostname statique change quand on recharge la page (attention au cache).
+
+![step6_validation](image/step6_validation.png)
+
 
 
 
