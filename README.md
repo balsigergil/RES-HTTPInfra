@@ -286,13 +286,111 @@ http://demo.res.ch/api/animals/100 :
 
 
 
-## Step 6 : Load balancing
+## Step 6 : Load balancing - multiple server nodes
 
-Lancer les containers :
+### Configuration du load balancer
+
+Avec la configuration de traefik mis en place lors de la dernière étape, il est très simple de réaliser cette étape. En effet, traefik fait par défaut du load balancing. Il suffit de définir plusieurs serveurs backend pour un même service et traefik s'occupera de répartir la charge.
+
+Ainsi nous allons légèrement modifier notre fichier docker-compose.yml pour créer plusieurs instances des deux type de serveurs backend. Pour cela, nous pourrions simplement copier-coller la configuration pour ajouter des instances mais nous allons plutôt utiliser la méthode *replicas* normalement réservé au serveur docker swarm.
+
+Ainsi, dans le fichier docker-compose.yml, on ajoute les lignes suivantes au deux services backend :
+
+```yaml
+deploy:
+  replicas: 2
+```
+
+Cela permet de créer 2 instance du même service. Il faut également supprimer la balise *container_name* car plusieurs containers ne peuvent pas avoir le même nom.
+
+Et voilà, la configuration est déjà finie. Cela fonctionne car les 2 containers dupliqué ont le même *http.service* ce qui indique à traefik qu'il peut répartir la charge sur ces 2 instances.
+
+
+
+Nous pouvons tester notre configuration avec la commande suivante :
+
+Nous allons démarrer notre infrastructure avec le paramètre `--compatibility` qui permet de prendre en comptes les balises normalement réservé à swarm (balise *deploy*) :
+
+```bash
+docker-compose --compatibility up -d
+```
+
+Les 5 containers démarrent et le site s'affiche normalement mais nous avons un problème. Il nous est impossible de test si le load balancer fonctionne correctement car nous ne pouvons pas identifier quel serveur backend à répondu à notre requête. Le reverse proxy fait trop bien son travail.
+
+Nous allons modifier nos serveurs http statique et dynamique pour qu'ils affichent le nom de l'hôte sur la page web.
+
+
+
+### Identification d'hôtes - serveur http dynamique
+
+Dans le fichier **Step_2/src/app.service.ts**, on ajoute un champs **hostname** :
+
+```javascript
+{
+    type: chance.animal(),
+    name: chance.first(),
+    age: chance.age(),
+    country: chance.country({ full: true }),
+    hostname: require("os").hostname()
+}
+```
+
+Puis dans le fichier **Step_1/src/app.js**, on affiche le **hostname** :
+
+```javascript
+title.innerText = animal.name + " is a " + animal.type + ". Dynamic host: " + animal.hostname;
+```
+
+
+
+### Identification d'hôtes - serveur http statique
+
+Contrairement au serveur http dynamique, il n'y pas de façon rapide d'afficher le nom d'hôte car le serveur http statique ne contient pas de code qui est exécuté sur le serveur. Pour contourner cela nous allons utiliser php comme moteur de template pour imprimer le nom de l'hôte dans le fichier html.
+
+Premièrement, il faut renommer le fichier index.html en index.php et ajouter la balise php suivante pour imprimer le nom d'hôte du serveur :
+
+```php+HTML
+Static host: <?=file_get_contents("/etc/hostname"); ?>
+```
+
+Ensuite, il nous faut un moyen pour exécuter la commande `php index.php > index.html` au lancement du container. Pour cela, nous allons créer le script **start.sh** qui contiendra cette commande suivi de la commande permettant de démarrer nginx. Cette dernière est nécessaire car nous allons écraser l'instruction CMD de l'image de base nginx avec notre script. On peut trouver cette commande à la fin du [Dockerfile de l'image nginx](https://github.com/nginxinc/docker-nginx/blob/594ce7a8bc26c85af88495ac94d5cd0096b306f7/mainline/buster/Dockerfile#L103).
+
+```bash
+#!/bin/bash
+php /usr/share/nginx/html/index.php > /usr/share/nginx/html/index.html
+nginx -g 'daemon off;'
+```
+
+Pour terminer, il faut modifier le Dockerfile pour installer php et pour copier et exécuter le script **start.sh** au lancement du container : 
+
+```dockerfile
+FROM nginx
+
+LABEL authors="Gil Balsiger, Julien Béguin"
+
+RUN apt-get update && apt-get install -y php
+
+COPY src /usr/share/nginx/html
+COPY start.sh /usr/local/bin/start.sh
+
+CMD ["/bin/bash", "/usr/local/bin/start.sh"]
+```
+
+
+
+### Validation
+
+On démarre notre infrastructure avec la commande suivante pour force la reconstruction des images :
 
 ```bash
 docker-compose --compatibility up -d --build
 ```
+
+
+
+
+
+
 
 
 
