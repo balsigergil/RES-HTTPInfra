@@ -654,3 +654,25 @@ Cette fois, le résultat des scripts nous indique qu'un cookie a été reçu lor
 
 A noter qu'à la fin du script, le cookie est détruit et donc s'il ont re-exécuté le script de test, c'est l'hôte suivant qui nous sera attribué.
 
+
+
+## Step 8 : Dynamic cluster management
+
+Pour cette étape, nous utiliserons l'option `--scale` de `docker-compose` pour augmenter et diminuer à chaud le nombre de node par service. Cette option permet d'indiquer le nombre de container à exécuter pour chaque service de la façon suivante `--scale SERVICE=NUMBER`.
+
+Lors de la création d'une nouvelle node, cette dernière hérite de la configuration traefik de son service maître. Parallèlement, le reverse proxy - ayant accès au socket docker - prend automatiquement connaissance du nouvelle node et l'ajoute au pool de nodes déjà existant pour ce service.
+
+De la même façon, lors de la suppression d'une node, le reverse proxy est notifié de la suppression par le socket docker. Il supprime alors la node du pool associé au service en question.
+
+
+
+
+
+TODO
+
+### Validation
+
+```bash
+docker-compose --compatibility up -d --scale dynamic-web=5 --scale static-web=5
+```
+
