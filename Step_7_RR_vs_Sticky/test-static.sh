@@ -1,14 +1,22 @@
 #!/bin/bash
 
-echo "COOKIES:"
-curl -c cookies.txt -s demo.res.ch > /dev/null
-tail -n +5 cookies.txt
+COOKIE_FILE=.cookies.tmp~
+REQUEST_FILE=.requests.tmp~
+ENDPOINT=demo.res.ch
 
-echo ""
-echo "TESTS:"
-for i in {1..10}
+printf "COOKIES:\n"
+curl -c $COOKIE_FILE -s $ENDPOINT > /dev/null
+tail -n +5 $COOKIE_FILE
+
+printf "\nREQUESTS:\n"
+touch $REQUEST_FILE
+for i in {1..20}
 do
-	curl -b cookies.txt -s demo.res.ch | grep "Static host" | cut -d ':' -f2 | cut -c2-
+    printf "%2d. " $i
+	curl -b $COOKIE_FILE -s $ENDPOINT | grep "Static host" | cut -d ':' -f2 | cut -c2- | tee -a $REQUEST_FILE
 done
 
-rm cookies.txt
+printf "\nSUMMARY:\n"
+cat $REQUEST_FILE | sort | uniq -c | tr -s ' ' ' ' | cut -c2-
+
+rm $REQUEST_FILE $COOKIE_FILE
