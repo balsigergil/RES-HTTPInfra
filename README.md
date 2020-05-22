@@ -518,8 +518,139 @@ Ainsi les scripts `test-static.sh` et `test-dynamic-sh` nous permettent de teste
 
 ### Round robin
 
-Le load balancer de traefik distribue les requête de façon round robin par défaut.
+Le load balancer de traefik distribue par défaut les requêtes de façon *round-robin.* Ainsi, notre configuration pour l'étape 6 devrait déjà être suffisante pour valider cette étape. Testons cela avec nos scripts. A noter que le nombre de node par service a été augmenté à 4 pour avoir des scénarios de test plus réaliste.
+
+**./test-static.sh** :
+
+```bash
+COOKIES:
+
+REQUESTS:
+ 1. 555ee86f410a
+ 2. 64968408f351
+ 3. f43ed74400dc
+ 4. 2273fce8b0c0
+ 5. 555ee86f410a
+ 6. 64968408f351
+ 7. f43ed74400dc
+ 8. 2273fce8b0c0
+ 9. 555ee86f410a
+10. 64968408f351
+11. f43ed74400dc
+12. 2273fce8b0c0
+13. 555ee86f410a
+14. 64968408f351
+15. f43ed74400dc
+16. 2273fce8b0c0
+17. 555ee86f410a
+18. 64968408f351
+19. f43ed74400dc
+20. 2273fce8b0c0
+
+SUMMARY:
+5 2273fce8b0c0
+5 555ee86f410a
+5 64968408f351
+5 f43ed74400dc
+```
+
+**./test-dynamic.sh** :
+
+```bash
+COOKIES:
+
+REQUESTS:
+ 1. 9f5578e796db
+ 2. a9e2424442bc
+ 3. b7993e59f1ff
+ 4. 3f2c91760012
+ 5. 9f5578e796db
+ 6. a9e2424442bc
+ 7. b7993e59f1ff
+ 8. 3f2c91760012
+ 9. 9f5578e796db
+10. a9e2424442bc
+11. b7993e59f1ff
+12. 3f2c91760012
+13. 9f5578e796db
+14. a9e2424442bc
+15. b7993e59f1ff
+16. 3f2c91760012
+17. 9f5578e796db
+18. a9e2424442bc
+19. b7993e59f1ff
+20. 3f2c91760012
+
+SUMMARY:
+5 3f2c91760012
+5 9f5578e796db
+5 a9e2424442bc
+5 b7993e59f1ff
+```
+
+Nous pouvons voir aux résultats des scripts que traefik distribue correctement les requêtes de façon *round-robin*.
 
 
 
 ### Sticky sessions
+
+Nous allons modifier la configuration de traefik dans le fichier docker-compose.yml. 
+
+Ajoutons les labels suivants au service *dynamic-web* pour indiquer à traefik qu'on veut que ce service utilise des *sticky-sessions* geré par des cookies et qu ces cookies s'appellent "*dynamic-web-sticky-session*" :
+
+```yaml
+- "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie=true"
+- "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie.name=dynamic-web-sticky-session"
+```
+
+Faisons de même pour le service *static-web* :
+
+```yaml
+- "traefik.http.services.static-web.loadbalancer.sticky.cookie=true"
+- "traefik.http.services.static-web.loadbalancer.sticky.cookie.name=dynamic-web-sticky-session"
+```
+
+
+
+Lançons notre infrastructure avec 4 nodes par service et testons là avec nos scripts :
+
+**./test-static.sh** :
+
+```bash
+COOKIES:
+demo.res.ch     FALSE   /       FALSE   0       static-web-sticky-session      http://172.23.0.2:80
+
+REQUESTS:
+ 1. 65c91b61bdb7
+ 2. 65c91b61bdb7
+ 3. 65c91b61bdb7
+ 4. 65c91b61bdb7
+...
+20. 65c91b61bdb7
+
+SUMMARY:
+20 65c91b61bdb7
+```
+
+**./test-dynamic.sh** :
+
+```bash
+COOKIES:
+demo.res.ch     FALSE   /       FALSE   0       dynamic-web-sticky-session      http://172.23.0.6:3000
+
+REQUESTS:
+ 1. 0d445a8be726
+ 2. 0d445a8be726
+ 3. 0d445a8be726
+ 4. 0d445a8be726
+...
+20. 0d445a8be726
+
+SUMMARY:
+20 0d445a8be726
+```
+
+Cette fois, le résultat des scripts nous indique qu'un cookie a été reçu lors du premier échange avec le reverse proxy. Le nom du cookie est bien celui que nous avons configuré plus tôt et il contient un URL vers un serveur backend. Les 20 requêtes seront effectuées sur ce serveur backend ce qui confirme que notre configuration *sticky-session* fonctionne correctement.
+
+A noter qu'à la fin du script, le cookie est détruit et donc s'il ont re-exécuté le script de test, c'est l'hôte suivant qui nous sera attribué.
+

@@ -32,6 +32,9 @@ services:
     - "traefik.http.routers.static-web.entrypoints=web"
     # Specify backend port
     - "traefik.http.services.static-web.loadbalancer.server.port=80"
+    # Enable sticky session
+    - "traefik.http.services.static-web.loadbalancer.sticky.cookie=true"
+    - "traefik.http.services.static-web.loadbalancer.sticky.cookie.name=static-web-sticky-session"
   reverse-proxy:
     image: traefik
     container_name: reverse-proxy
