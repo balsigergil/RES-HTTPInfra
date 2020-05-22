@@ -448,65 +448,78 @@ Et on peut maintenant voir les deux noms d'hôte en haut à gauche de la page we
 
 
 
-## Step 7 :
+## Step 7 : Load balancing : round-robin vs sticky sessions
 
-#### Round robin
+### Protocole de validation
 
-Le load balancer de traefik distribue les requête de façon round robin par défaut.
+Les navigateurs ne sont pas une façon fiable de tester notre infrastructure. En effet, sur chrome et firefox, le même nom d'hôte est répété plusieurs fois même en faisant un CTRL+F5. Il faut appuyer deux fois sur CTRL+F5 rapidement ou alors activer l'option *Inspecter > Network > Disable cache* pour que l'hôte change à chaque fois. Les navigateurs utilise donc du cache même quand on leurs dis de pas l'utiliser. Cela rend les tests délicats. 
+
+Pour éviter cela, nous allons plutôt faire nos tests avec curl. Nous écrirons deux scripts pour nous permettre de tester individuellement chaque service. 
+
+#### Scripts de validation
+
+Premièrement, il nous faut construire une commande pour faire une requête HTTP sur la ressource à tester et n'afficher que le nom d'hôte ayant répondu.
+
+Contenu dynamique :
+
+```bash
+curl -b cookies.txt -s demo.res.ch/api/animals/1 | cut -d '"' -f18
+```
+
+Contenu statique :
+
+```bash
+curl -b cookies.txt -s demo.res.ch | grep "Static host" | cut -d ':' -f2 | cut -c2-
+```
+
+L'option `-b` de `curl` permet de spécifier les cookies à envoyé pour la requête. Cela sera utile lors du test des sticky sessions.
 
 
 
-
-
-Sur chrome et firefox, le même nom d'hôte est répété plusieurs fois même avec CTRL+F5. Il faut faire un double CTRL+F5 rapide ou alors activer l'option *Inspecter > Network > Disable cache* pour que l'hôte change à chaque fois. Sur edge CTRL+F5 marche normalement.
-
-Les navigateurs utilise du cache (même quand on leurs dis de pas l'utiliser) ce qui rend les tests délicats. Nous allons plutôt faire nos tests avec curl. Pour cela, nous écrivons deux petits scripts qui nous permettrons  de tester individuellement chaque service.
+Ces requêtes seront exécutées dans une boucle pour pouvoir évaluer si le load balancer distribue correctement les requêtes. Ainsi, mise à part les *endpoints* et les requêtes ci-dessus, les deux scripts sont identiques et ressemblent à cela :
 
 **test-static.sh** :
 
 ```bash
 #!/bin/bash
 
-echo "COOKIES:"
-curl -c cookies.txt -s demo.res.ch > /dev/null
-tail -n +5 cookies.txt
+COOKIE_FILE=.cookies.tmp~
+REQUEST_FILE=.requests.tmp~
+ENDPOINT=demo.res.ch
 
-echo ""
-echo "TESTS:"
-for i in {1..10}
+printf "COOKIES:\n"
+curl -c $COOKIE_FILE -s $ENDPOINT > /dev/null
+tail -n +5 $COOKIE_FILE
+touch $REQUEST_FILE
+
+printf "\nREQUESTS:\n"
+for i in {1..20}
 do
-	curl -b cookies.txt -s demo.res.ch | grep "Static host" | cut -d ':' -f2 | cut -c2-
+    printf "%2d. " $i
+	curl -b $COOKIE_FILE -s $ENDPOINT | grep "Static host" | cut -d ':' -f2 | cut -c2- | tee -a $REQUEST_FILE
 done
 
-rm cookies.txt
+printf "\nSUMMARY:\n"
+cat $REQUEST_FILE | sort | uniq -c | tr -s ' ' ' ' | cut -c2-
+
+rm $REQUEST_FILE $COOKIE_FILE
 ```
 
-**test-dynamic.sh**
+Les actions suivantes sont effectuées :
 
-```bash
-#!/bin/bash
-
-echo "COOKIES:"
-curl -c cookies.txt -s demo.res.ch/api/animals/1 > /dev/null
-tail -n +5 cookies.txt
-
-echo ""
-echo "TESTS:"
-for i in {1..10}
-do
-	curl -b cookies.txt -s demo.res.ch/api/animals/1 | cut -d '"' -f18
-done
-
-rm cookies.txt
-```
-
-Ces scripts font les actions suivantes :
-
-1. Faire une première requête sur le service à tester pour recevoir les cookies et les enregistrer dans le fichier cookies.txt
+1. Fait une première requête sur le service à tester pour recevoir les cookies et les enregistrer dans un fichier temporaire
 2. Affiche les cookies enregistrés 
-3. Effectuer 10 requête sur le service à tester avec le cookie enregistrer en n'affichant uniquement le nom d'hôte du serveur backend.
+3. Effectue 20 requête sur le service à tester avec le cookie enregistrer en affichant uniquement le nom d'hôte du serveur backend ayant répondu
+4. Affiche un résumé comptabilisant le nombre de fois que chaque serveurs a été atteint.
 
-Cela nous permet de tester notre configuration round robin ainsi que notre future configuration sticky session qui utilisera les cookies pour maintenir les sessions.
+Ainsi les scripts `test-static.sh` et `test-dynamic-sh` nous permettent de tester notre configuration round robin ainsi que notre future configuration sticky session qui utilisera les cookies pour maintenir les sessions.
 
 
 
+### Round robin
+
+Le load balancer de traefik distribue les requête de façon round robin par défaut.
+
+
+
+### Sticky sessions
