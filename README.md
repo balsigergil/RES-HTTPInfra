@@ -658,6 +658,8 @@ A noter qu'à la fin du script, le cookie est détruit et donc s'il ont re-exéc
 
 ## Step 8 : Dynamic cluster management
 
+### Solution
+
 Pour cette étape, nous utiliserons l'option `--scale` de `docker-compose` pour augmenter et diminuer à chaud le nombre de node par service. Cette option permet d'indiquer le nombre de container à exécuter pour chaque service de la façon suivante `--scale SERVICE=NUMBER`.
 
 Lors de la création d'une nouvelle node, cette dernière hérite de la configuration traefik de son service maître. Parallèlement, le reverse proxy - ayant accès au socket docker - prend automatiquement connaissance du nouvelle node et l'ajoute au pool de nodes déjà existant pour ce service.
@@ -666,13 +668,139 @@ De la même façon, lors de la suppression d'une node, le reverse proxy est noti
 
 
 
+### Découverte des hôtes
+
+Ainsi, la découverte des hôtes est faite automatique par traefik au travers du socket docker. Ce dernier donne accès à toutes les informations des containers contenus sur le daemon docker. Cela peut poser des problèmes de sécurité car traefik a accès à TOUS les containers, même ceux qui ne sont pas destinées a être des backends pour le reverse proxy. Une solution possible est d'héberger uniquement des containers appartenant à notre infrastructure HTTP sur cette installation de docker.
 
 
-TODO
 
 ### Validation
 
+Pour valider cette étape, nous utiliserons la configuration *round-robin* (step 6) de notre infrastructure car elle permet d'avoir des résultats de tests plus parlant.
+
+Commençons par démarrer normalement notre infrastructure :
+
 ```bash
-docker-compose --compatibility up -d --scale dynamic-web=5 --scale static-web=5
+$ docker-compose --compatibility up -d
+Creating step_6_multiple_nodes_dynamic-web_1 ... done
+Creating step_6_multiple_nodes_dynamic-web_2 ... done
+Creating reverse-proxy                       ... done
+Creating step_6_multiple_nodes_static-web_1  ... done
+Creating step_6_multiple_nodes_static-web_2  ... done
 ```
 
+Et testons notre service statique :
+
+```bash
+$ ./test-static.sh
+[...]
+SUMMARY:
+10 c166ae2d1025
+10 ed031c1cc821
+```
+
+Maintenant, doublons le nombre de node pour notre service statique :
+
+```bash
+$ docker-compose --compatibility up -d --scale static-web=4
+Creating step_6_multiple_nodes_static-web_3 ... done
+Creating step_6_multiple_nodes_static-web_4 ... done
+```
+
+Et re-testons notre service statique :
+
+```bash
+$ ./test-static.sh
+[...]
+SUMMARY:
+5 0c5548310d05
+5 681787228cbf
+5 cfd79e58a251
+5 e72a6f136aba
+```
+
+Le nombre d'hôte à effectivement augmenté et les requêtes sont réparties entre toutes les nodes du pool.
+
+Testons maintenant notre configuration dynamique :
+
+```bash
+$ ./test-dynamic.sh
+[...]
+SUMMARY:
+10 c166ae2d1025
+10 ed031c1cc821
+```
+
+Il y a bien 2 nodes, par défaut. Réduisons le nombre de node à 1. Attention, il faut répété le nombre de node pour le service statique également sinon il sera remis à la valeur par défaut du service.
+
+```bash
+$ docker-compose --compatibility up -d --scale static-web=4 --scale dynamic-web=1
+Stopping and removing step_6_multiple_nodes_dynamic-web_2 ... done
+```
+
+Testons à nouveau notre configuration dynamique :
+
+```bash
+$ ./test-dynamic.sh
+[...]
+SUMMARY:
+20 c166ae2d1025
+```
+
+Il reste effectivement plus qu'une node pour le service dynamique.
+
+Pour finir, poussons un peu notre infrastructure et testons avec 10 nodes par service :
+
+```bash
+$ docker-compose --compatibility up -d --scale static-web=10 --scale dynamic-web=10
+Creating step_6_multiple_nodes_dynamic-web_2  ... done
+Creating step_6_multiple_nodes_dynamic-web_3  ... done
+Creating step_6_multiple_nodes_dynamic-web_4  ... done
+Creating step_6_multiple_nodes_dynamic-web_5  ... done
+Creating step_6_multiple_nodes_dynamic-web_6  ... done
+Creating step_6_multiple_nodes_dynamic-web_7  ... done
+Creating step_6_multiple_nodes_dynamic-web_8  ... done
+Creating step_6_multiple_nodes_dynamic-web_9  ... done
+Creating step_6_multiple_nodes_dynamic-web_10 ... done
+Creating step_6_multiple_nodes_static-web_5   ... done
+Creating step_6_multiple_nodes_static-web_6   ... done
+Creating step_6_multiple_nodes_static-web_7   ... done
+Creating step_6_multiple_nodes_static-web_8   ... done
+Creating step_6_multiple_nodes_static-web_9   ... done
+Creating step_6_multiple_nodes_static-web_10  ... done
+```
+
+Et testons les deux services :
+
+```bash
+$ ./test-static.sh
+[...]
+SUMMARY:
+2 0c5548310d05
+2 1b16bba4a479
+2 62726fd0b7f3
+2 681787228cbf
+2 be3bb40d046d
+2 cccdcda62830
+2 d0e013299e5b
+2 d6e314fb4694
+2 e9b0fa5b11a9
+2 f00180033f3d
+
+$ ./test.dynamic.sh
+[...]
+2 3c08bdaa585e
+2 6057dfe1986e
+2 64565f168bdc
+2 69c93d1e6a66
+2 7b19726b0b6d
+2 bfada0a5290b
+2 c0efe4cd62a9
+2 c166ae2d1025
+2 c336beff8a3b
+2 fa54fc63b127
+```
+
+Magnifique ! Chacune des 10 nodes reçoit 2 requêtes. Notre infrastructure *scale* automatique et immédiatement.
+
+Enfin, que ce passe t'il si on assigne **zéro** node à un service ? Réponse: ce service et sa configuration traefik sera simplement ignoré. C'est donc un autre service possédant une route plus générale qui va traiter la requête. Si la requête ne convient à aucun autre service, c'est le reverse proxy qui répondra avec une erreur 404.
