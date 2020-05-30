@@ -3,6 +3,8 @@
 > Auteurs: Gil Balsiger et Julien Béguin  
 > Date: 01.05.2020
 
+L'environnement utilisé pour ce laboratoire est docker version `19.03.8-ce` sur Linux (Arch based).
+
 
 
 ## Step 1: Serveur HTTP statique avec NGINX
@@ -340,6 +342,33 @@ http://demo.res.ch/api/animals/100 :
 
 
 
+Enfin, validons que le reverse proxy s'actualise bien lors d'un changement d'adresse IP des services backend.
+
+Premièrement, récupérons l'adresse IP d'un container, par exemple le serveur HTTP statique :
+
+```bash
+docker inspect static-web | grep IPAddress
+# ... "IPAddress": "172.26.0.4" ...
+```
+
+Puis supprimons et recréons tous les containers. Les containers devraient recevoir une adresse IP différente.
+
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+Enfin, récupérons à nouveau l'adresse IP du container HTTP statique :
+
+```bash
+docker inspect static-web | grep IPAddress
+# ... "IPAddress": "172.27.0.4" ...
+```
+
+L'IP de ce serveur à effectivement changé mais le reverse proxy à bien mis à jour sa configuration. Ainsi lorsqu'on accède à http://demo.res.ch, le résultat est le même que précédemment.
+
+
+
 ## Step 6 : Load balancing - multiple server nodes
 
 ### Configuration du load balancer
@@ -445,6 +474,7 @@ docker-compose --compatibility up -d --build
 Et on peut maintenant voir les deux noms d'hôte en haut à gauche de la page web. Le hostname dynamique change toutes les 3 secondes et le hostname statique change quand on recharge la page (attention au cache) :
 
 ![step6_validation](image/step6_validation.png)
+
 
 
 
@@ -653,4 +683,3 @@ SUMMARY:
 Cette fois, le résultat des scripts nous indique qu'un cookie a été reçu lors du premier échange avec le reverse proxy. Le nom du cookie est bien celui que nous avons configuré plus tôt et il contient un URL vers un serveur backend. Les 20 requêtes seront effectuées sur ce serveur backend ce qui confirme que notre configuration *sticky-session* fonctionne correctement.
 
 A noter qu'à la fin du script, le cookie est détruit et donc s'il ont re-exécuté le script de test, c'est l'hôte suivant qui nous sera attribué.
-
