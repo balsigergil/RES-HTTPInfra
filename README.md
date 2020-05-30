@@ -626,25 +626,16 @@ Nous pouvons voir aux résultats des scripts que traefik distribue correctement 
 
 Nous allons modifier la configuration de traefik dans le fichier docker-compose.yml. 
 
-Ajoutons les labels suivants au service *dynamic-web* pour indiquer à traefik qu'on veut que ce service utilise des *sticky-sessions* geré par des cookies et qu ces cookies s'appellent "*dynamic-web-sticky-session*" :
-
-```yaml
-- "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie=true"
-- "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie.name=dynamic-web-sticky-session"
-```
-
-Faisons de même pour le service *static-web* :
+Ajoutons les labels suivants au service *static-web* pour indiquer à traefik qu'on veut que ce service utilise des *sticky-sessions* geré par des cookies et qu ces cookies s'appellent "*static-web-sticky-session*" :
 
 ```yaml
 - "traefik.http.services.static-web.loadbalancer.sticky.cookie=true"
-- "traefik.http.services.static-web.loadbalancer.sticky.cookie.name=dynamic-web-sticky-session"
+- "traefik.http.services.static-web.loadbalancer.sticky.cookie.name=static-web-sticky-session"
 ```
 
 
 
-Lançons notre infrastructure avec 4 nodes par service et testons là avec nos scripts :
-
-**./test-static.sh** :
+Lançons notre infrastructure avec 4 nodes par service et testons là avec notre script **test-static.sh** :
 
 ```bash
 COOKIES:
@@ -662,24 +653,6 @@ SUMMARY:
 20 65c91b61bdb7
 ```
 
-**./test-dynamic.sh** :
+Cette fois, le résultat du script nous indique qu'un cookie a été reçu lors du premier échange avec le reverse proxy. Le nom du cookie est bien celui que nous avons configuré plus tôt et il contient un URL vers un serveur backend. Les 20 requêtes seront effectuées sur ce serveur backend ce qui confirme que notre configuration *sticky-session* fonctionne correctement.
 
-```bash
-COOKIES:
-demo.res.ch     FALSE   /       FALSE   0       dynamic-web-sticky-session      http://172.23.0.6:3000
-
-REQUESTS:
- 1. 0d445a8be726
- 2. 0d445a8be726
- 3. 0d445a8be726
- 4. 0d445a8be726
-...
-20. 0d445a8be726
-
-SUMMARY:
-20 0d445a8be726
-```
-
-Cette fois, le résultat des scripts nous indique qu'un cookie a été reçu lors du premier échange avec le reverse proxy. Le nom du cookie est bien celui que nous avons configuré plus tôt et il contient un URL vers un serveur backend. Les 20 requêtes seront effectuées sur ce serveur backend ce qui confirme que notre configuration *sticky-session* fonctionne correctement.
-
-A noter qu'à la fin du script, le cookie est détruit et donc s'il ont re-exécuté le script de test, c'est l'hôte suivant qui nous sera attribué.
+A noter qu'à la fin du script, le cookie est détruit et donc si on re-exécute le script de test, c'est l'hôte suivant qui nous sera attribué.
