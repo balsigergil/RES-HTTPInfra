@@ -3,6 +3,8 @@
 > Auteurs: Gil Balsiger et Julien Béguin  
 > Date: 01.05.2020
 
+L'environnement utilisé pour ce laboratoire est docker version `19.03.8-ce` sur Linux (Arch based).
+
 
 
 ## Step 1: Serveur HTTP statique avec NGINX
@@ -340,6 +342,33 @@ http://demo.res.ch/api/animals/100 :
 
 
 
+Enfin, validons que le reverse proxy s'actualise bien lors d'un changement d'adresse IP des services backend.
+
+Premièrement, récupérons l'adresse IP d'un container, par exemple le serveur HTTP statique :
+
+```bash
+docker inspect static-web | grep IPAddress
+# ... "IPAddress": "172.26.0.4" ...
+```
+
+Puis supprimons et recréons tous les containers. Les containers devraient recevoir une adresse IP différente.
+
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+Enfin, récupérons à nouveau l'adresse IP du container HTTP statique :
+
+```bash
+docker inspect static-web | grep IPAddress
+# ... "IPAddress": "172.27.0.4" ...
+```
+
+L'IP de ce serveur à effectivement changé mais le reverse proxy à bien mis à jour sa configuration. Ainsi lorsqu'on accède à http://demo.res.ch, le résultat est le même que précédemment.
+
+
+
 ## Step 6 : Load balancing - multiple server nodes
 
 ### Configuration du load balancer
@@ -445,6 +474,7 @@ docker-compose --compatibility up -d --build
 Et on peut maintenant voir les deux noms d'hôte en haut à gauche de la page web. Le hostname dynamique change toutes les 3 secondes et le hostname statique change quand on recharge la page (attention au cache) :
 
 ![step6_validation](image/step6_validation.png)
+
 
 
 
@@ -596,25 +626,16 @@ Nous pouvons voir aux résultats des scripts que traefik distribue correctement 
 
 Nous allons modifier la configuration de traefik dans le fichier docker-compose.yml. 
 
-Ajoutons les labels suivants au service *dynamic-web* pour indiquer à traefik qu'on veut que ce service utilise des *sticky-sessions* geré par des cookies et qu ces cookies s'appellent "*dynamic-web-sticky-session*" :
-
-```yaml
-- "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie=true"
-- "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie.name=dynamic-web-sticky-session"
-```
-
-Faisons de même pour le service *static-web* :
+Ajoutons les labels suivants au service *static-web* pour indiquer à traefik qu'on veut que ce service utilise des *sticky-sessions* geré par des cookies et qu ces cookies s'appellent "*static-web-sticky-session*" :
 
 ```yaml
 - "traefik.http.services.static-web.loadbalancer.sticky.cookie=true"
-- "traefik.http.services.static-web.loadbalancer.sticky.cookie.name=dynamic-web-sticky-session"
+- "traefik.http.services.static-web.loadbalancer.sticky.cookie.name=static-web-sticky-session"
 ```
 
 
 
-Lançons notre infrastructure avec 4 nodes par service et testons là avec nos scripts :
-
-**./test-static.sh** :
+Lançons notre infrastructure avec 4 nodes par service et testons là avec notre script **test-static.sh** :
 
 ```bash
 COOKIES:
@@ -632,27 +653,9 @@ SUMMARY:
 20 65c91b61bdb7
 ```
 
-**./test-dynamic.sh** :
+Cette fois, le résultat du script nous indique qu'un cookie a été reçu lors du premier échange avec le reverse proxy. Le nom du cookie est bien celui que nous avons configuré plus tôt et il contient un URL vers un serveur backend. Les 20 requêtes seront effectuées sur ce serveur backend ce qui confirme que notre configuration *sticky-session* fonctionne correctement.
 
-```bash
-COOKIES:
-demo.res.ch     FALSE   /       FALSE   0       dynamic-web-sticky-session      http://172.23.0.6:3000
-
-REQUESTS:
- 1. 0d445a8be726
- 2. 0d445a8be726
- 3. 0d445a8be726
- 4. 0d445a8be726
-...
-20. 0d445a8be726
-
-SUMMARY:
-20 0d445a8be726
-```
-
-Cette fois, le résultat des scripts nous indique qu'un cookie a été reçu lors du premier échange avec le reverse proxy. Le nom du cookie est bien celui que nous avons configuré plus tôt et il contient un URL vers un serveur backend. Les 20 requêtes seront effectuées sur ce serveur backend ce qui confirme que notre configuration *sticky-session* fonctionne correctement.
-
-A noter qu'à la fin du script, le cookie est détruit et donc s'il ont re-exécuté le script de test, c'est l'hôte suivant qui nous sera attribué.
+A noter qu'à la fin du script, le cookie est détruit et donc si on re-exécute le script de test, c'est l'hôte suivant qui nous sera attribué.
 
 
 
@@ -676,7 +679,7 @@ Ainsi, la découverte des hôtes est faite automatique par traefik au travers du
 
 ### Validation
 
-Pour valider cette étape, nous utiliserons la configuration *round-robin* (step 6) de notre infrastructure car elle permet d'avoir des résultats de tests plus parlant.
+Pour valider cette étape, **nous utiliserons la configuration *round-robin* (step 6) de notre infrastructure** car elle permet d'avoir des résultats de tests plus parlant.
 
 Commençons par démarrer normalement notre infrastructure :
 
@@ -804,3 +807,4 @@ $ ./test.dynamic.sh
 Magnifique ! Chacune des 10 nodes reçoit 2 requêtes. Notre infrastructure *scale* automatique et immédiatement.
 
 Enfin, que ce passe t'il si on assigne **zéro** node à un service ? Réponse: ce service et sa configuration traefik sera simplement ignoré. C'est donc un autre service possédant une route plus générale qui va traiter la requête. Si la requête ne convient à aucun autre service, c'est le reverse proxy qui répondra avec une erreur 404.
+

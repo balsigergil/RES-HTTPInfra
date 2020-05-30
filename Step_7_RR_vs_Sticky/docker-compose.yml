@@ -16,9 +16,6 @@ services:
     - "traefik.http.middlewares.dynamic-web-middleware.stripprefix.prefixes=/api/animals"
     # Specify backend port
     - "traefik.http.services.dynamic-web.loadbalancer.server.port=3000"
-    # Enable sticky session
-    - "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie=true"
-    - "traefik.http.services.dynamic-web.loadbalancer.sticky.cookie.name=dynamic-web-sticky-session"
   static-web:
     build: ../Step_1/
     deploy:
