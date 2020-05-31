@@ -17,7 +17,12 @@ Nous avons utilisé un template HTML utilisant le framework CSS Bootstrap: [http
 
 Le Dockerfile est disponible [ici](Step_1/Dockerfile).
 
+Commandes pour tester :
 
+```
+docker build -t http-step1 ./Step_1
+docker run --rm -p 8080:80 http-step1
+```
 
 ## Step 2: Serveur HTTP dynamique avec [NestJS](https://nestjs.com/)
 
@@ -170,7 +175,7 @@ Avec le temps, il devenu plus aisé de faire des requêtes AJAX en vanilla JavaS
 
 C'est pourquoi nous n'avons pas utilisé jQuery, qui est certe toujours utilisé mais l'est de moins en moins et tant à être remplacé par des frameworks tels que React ou Vue basés sur du virtual DOM plutôt que manipuler la DOM HTML directement.
 
-Il est possible de tester l'application sur l'URL: [http://demo.res.ch](http://demo.res.ch) après avoir lancé l'infra comme indiqué à l'étape 3
+Il est possible de tester l'application sur l'URL: [http://demo.res.ch](http://demo.res.ch) après avoir lancé l'infra comme indiqué à l'étape 3.
 
 Le script est relativement simple. On récupère 1 animal et on remplace le texte du titre. On fait cela toutes les 2.5 secondes.
 
