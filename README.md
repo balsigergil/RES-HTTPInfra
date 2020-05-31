@@ -808,3 +808,30 @@ Magnifique ! Chacune des 10 nodes reçoit 2 requêtes. Notre infrastructure *sca
 
 Enfin, que ce passe t'il si on assigne **zéro** node à un service ? Réponse: ce service et sa configuration traefik sera simplement ignoré. C'est donc un autre service possédant une route plus générale qui va traiter la requête. Si la requête ne convient à aucun autre service, c'est le reverse proxy qui répondra avec une erreur 404.
 
+## Step 9 : Management UI
+
+Pour cette étape, nous avons choisi de partir sur un outil existant: [Portainer](https://www.portainer.io/).
+
+Nous avons ainsi ajouter la configuration suivante au fichier `docker-compose.yml` :
+
+```yml
+portainer:
+    image: portainer/portainer
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    volumes: 
+      - "portainer_data:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+```
+
+Avec en plus un volume pour les données persistantes de Portainer :
+
+```yml
+volumes: 
+  portainer_data:
+```
+
+On peut ensuite accéder au service sur [demo.res.ch:9000]().
+
+Grâce à cet outils, on peut gérer complètement notre infrastructure docker depuis l'interface web. Cependant, si l'on souhaite ajouter un conteneur et qu'il soit managé par Traefik, il est possible de le faire avec avec Portainer, mais il ne faut pas oublié de mettre le conteneur dans le même réseau que le reverse-proxy et d'y ajouter les bons labels nécessaires à Traefik. La méthode préférable reste cependant la ligne de commande pour ajouter un conteneur à la stack en modifiant le fichier docker-compose.yml.

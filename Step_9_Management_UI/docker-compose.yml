@@ -1,0 +1,63 @@
+version: "3.2"
+services:
+  dynamic-web:
+    build: ../Step_2/
+    deploy:
+      replicas: 2
+    labels:
+    # Enable reverse proxy exposing for this container
+    - "traefik.enable=true"
+    # Set routing rules
+    - "traefik.http.routers.dynamic-web.rule=Host(`demo.res.ch`) && PathPrefix(`/api/animals`)"
+    # Set reverse proxy entrypoint
+    - "traefik.http.routers.dynamic-web.entrypoints=web"
+    # Cut path prefix with middleware
+    - "traefik.http.routers.dynamic-web.middlewares=dynamic-web-middleware"
+    - "traefik.http.middlewares.dynamic-web-middleware.stripprefix.prefixes=/api/animals"
+    # Specify backend port
+    - "traefik.http.services.dynamic-web.loadbalancer.server.port=3000"
+  static-web:
+    build: ../Step_1/
+    deploy:
+      replicas: 2
+    labels:
+    # Enable reverse proxy exposing for this container
+    - "traefik.enable=true"
+    # Set routing rules
+    - "traefik.http.routers.static-web.rule=Host(`demo.res.ch`)"
+    # Set reverse proxy entrypoint
+    - "traefik.http.routers.static-web.entrypoints=web"
+    # Specify backend port
+    - "traefik.http.services.static-web.loadbalancer.server.port=80"
+    # Enable sticky session
+    - "traefik.http.services.static-web.loadbalancer.sticky.cookie=true"
+    - "traefik.http.services.static-web.loadbalancer.sticky.cookie.name=static-web-sticky-session"
+  reverse-proxy:
+    image: traefik
+    command:
+    # Enable traefik web interface
+    - "--api.insecure=true"
+    # Set docker as a provider
+    - "--providers.docker=true"
+    # Disable container auto-exposing
+    - "--providers.docker.exposedbydefault=false"
+    # Specify frontend port
+    - "--entrypoints.web.address=:80"
+    ports:
+    # 80 for reverse proxy, 8080 for traefik web interface
+    - "80:80"
+    - "8080:8080"
+    volumes:
+    # Traefik need to have read-only access to the docker socket when using docker as a provider
+    - "/var/run/docker.sock:/var/run/docker.sock:ro"
+  portainer:
+    image: portainer/portainer
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    volumes: 
+      - "portainer_data:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+volumes: 
+  portainer_data:
