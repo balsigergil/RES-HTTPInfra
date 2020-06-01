@@ -808,6 +808,8 @@ Magnifique ! Chacune des 10 nodes reçoit 2 requêtes. Notre infrastructure *sca
 
 Enfin, que ce passe t'il si on assigne **zéro** node à un service ? Réponse: ce service et sa configuration traefik sera simplement ignoré. C'est donc un autre service possédant une route plus générale qui va traiter la requête. Si la requête ne convient à aucun autre service, c'est le reverse proxy qui répondra avec une erreur 404.
 
+
+
 ## Step 9 : Management UI
 
 Pour cette étape, nous avons choisi de partir sur un outil existant: [Portainer](https://www.portainer.io/).
@@ -838,9 +840,9 @@ On peut ensuite lancer notre infrastructure et accéder au service avec [demo.re
 docker-compose --compatibility up -d
 ```
 
-Lors de la première exécution, il est nécessaire de faire une rapide configuration de l'outil en ajoutant à mot de passe pour le compte administrateur et en indiquant que l'on souhaite **gérer le environnement docker local**.
+Lors de la première exécution, il est nécessaire de faire une rapide configuration de l'outil en ajoutant à mot de passe pour le compte administrateur et en indiquant que l'on souhaite **gérer l'environnement docker local**.
 
-Grâce à cet outils, on peut gérer complètement notre infrastructure docker depuis l'interface web.
+Grâce à cet outil, on peut gérer complètement notre infrastructure docker depuis l'interface web.
 
 Premièrement, l'onglet "**Containers**" nous permet de voir les containers en exécution :
 
@@ -848,13 +850,13 @@ Premièrement, l'onglet "**Containers**" nous permet de voir les containers en e
 
 
 
-Ensuite, si on souhaite ajouter ou supprimer une node d'un de nos service, il suffit de cliquer sur une node de ce service et utiliser le bouton  "**Remove**" pour supprimer la node ou "**Duplicate/Edit**" pour ajouter une node au service :
+Ensuite, si on souhaite ajouter ou supprimer une node d'un de nos services, il suffit de cliquer sur une node existante de ce service et utiliser le bouton  "**Remove**" pour supprimer la node ou "**Duplicate/Edit**" pour ajouter une node au service :
 
 ![step9_duplicate](image/step9_duplicate.png)
 
 
 
-Par exemple, essayons d'ajouter une node au service HTTP dynamique. Il faut modifier le nom du containers :
+Par exemple, essayons d'ajouter une node au service HTTP dynamique. Il faut donc cliquer sur le bouton "**Duplicate/Edit**" puis modifier le nom du containers :
 
 ![step9_name](image/step9_name.png)
 
@@ -862,11 +864,11 @@ Ainsi que modifier le nom d'hôte pour pouvoir identifier le container lors des 
 
 ![step9_hostname](image/step9_hostname.png)
 
-Et on peut créer le container :
+Et on peut créer le container avec le bouton "**Deploy**":
 
 ![step9_deploy](image/step9_deploy.png)
 
-On peut voir dans la liste des containers en exécution que notre nouveau container a bien été créé. Et lorsque nous executons notre script de test **test-dynamic.sh** on voit que le nouveau container a bien été ajouté au pool de son service :
+On peut voir dans la liste des containers en exécution que notre nouveau container a bien été créé. Et lorsque nous executons notre script de test **test-dynamic.sh** on voit que le nouveau container a bien été ajouté au pool de son service car il reçoit des requêtes :
 
 ```bash
 $ ./test-dynamic.sh 
