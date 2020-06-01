@@ -832,6 +832,63 @@ volumes:
   portainer_data:
 ```
 
-On peut ensuite accéder au service sur [demo.res.ch:9000]().
+On peut ensuite lancer notre infrastructure et accéder au service avec [demo.res.ch:9000](demo.res.ch:9000).
 
-Grâce à cet outils, on peut gérer complètement notre infrastructure docker depuis l'interface web. Cependant, si l'on souhaite ajouter un conteneur et qu'il soit managé par Traefik, il est possible de le faire avec avec Portainer, mais il ne faut pas oublié de mettre le conteneur dans le même réseau que le reverse-proxy et d'y ajouter les bons labels nécessaires à Traefik. La méthode préférable reste cependant la ligne de commande pour ajouter un conteneur à la stack en modifiant le fichier docker-compose.yml.
+```bash
+docker-compose --compatibility up -d
+```
+
+Lors de la première exécution, il est nécessaire de faire une rapide configuration de l'outil en ajoutant à mot de passe pour le compte administrateur et en indiquant que l'on souhaite **gérer le environnement docker local**.
+
+Grâce à cet outils, on peut gérer complètement notre infrastructure docker depuis l'interface web.
+
+Premièrement, l'onglet "**Containers**" nous permet de voir les containers en exécution :
+
+![step9_list](image/step9_list.png)
+
+
+
+Ensuite, si on souhaite ajouter ou supprimer une node d'un de nos service, il suffit de cliquer sur une node de ce service et utiliser le bouton  "**Remove**" pour supprimer la node ou "**Duplicate/Edit**" pour ajouter une node au service :
+
+![step9_duplicate](image/step9_duplicate.png)
+
+
+
+Par exemple, essayons d'ajouter une node au service HTTP dynamique. Il faut modifier le nom du containers :
+
+![step9_name](image/step9_name.png)
+
+Ainsi que modifier le nom d'hôte pour pouvoir identifier le container lors des tests :
+
+![step9_hostname](image/step9_hostname.png)
+
+Et on peut créer le container :
+
+![step9_deploy](image/step9_deploy.png)
+
+On peut voir dans la liste des containers en exécution que notre nouveau container a bien été créé. Et lorsque nous executons notre script de test **test-dynamic.sh** on voit que le nouveau container a bien été ajouté au pool de son service :
+
+```bash
+$ ./test-dynamic.sh 
+COOKIES:
+
+REQUESTS:
+ 1. 7c6dabf34b48
+ 2. 8897647f96c6
+ 3. new-container
+ 4. 7c6dabf34b48
+ 5. 8897647f96c6
+ 6. new-container
+[...]
+19. 7c6dabf34b48
+20. 8897647f96c6
+
+SUMMARY:
+7 7c6dabf34b48
+7 8897647f96c6
+6 new-container
+```
+
+
+
+A noter que nous utilisons la duplication de container pour ajouter une node à un pool mais cela n'est pas la façon la plus élégante. Dans l'idéal il faudrait utiliser une fonctionnalité de portainer appelé "**App Templates**" qui permet de définir (comme docker-compose en fait) une configuration pour générer de nouveaux containers. Néanmoins, il faut à nouveaux ajouter toute la configuration des containers et en particulier les labels pour traefik pour que cela fonctionne. Nous ne l'avons pas fait par manque de temps.
